@@ -2,15 +2,16 @@ import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
-import * as XLSX from "xlsx"; // Import the xlsx library
+import * as XLSX from "xlsx";
 import Sidebar from "../../Component/Sidebar";
 
 const AdminDashboard = () => {
   const [reports, setReports] = useState([]);
   const [group, setGroup] = useState("WH");
+  const [zone, setZone] = useState("RL"); // Initialize as empty to allow "All Zones"
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(dayjs().format("YYYY-MM"));
-  const [selectedRole, setSelectedRole] = useState("WH");
+  const [selectedRole, setSelectedRole] = useState("");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [error, setError] = useState(null);
   const [totalWorkingDays, setTotalWorkingDays] = useState(null);
@@ -18,6 +19,9 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem("user"));
   const dayCount = dayjs(selectedMonth).daysInMonth();
+
+  // Available zones for the dropdown
+  const zones = ["RL", "Damage", "GVI", "Delivery Department", "AMD"];
 
   useEffect(() => {
     if (!storedUser) {
@@ -30,11 +34,11 @@ const AdminDashboard = () => {
     fetchUserReports(
       selectedMonth,
       selectedRole,
-      storedUser.group || (selectedRole === "admin" ? "" : group),
-      storedUser.zone
+      storedUser.group || (selectedRole === "super admin" ? "WH" : group),
+      storedUser.zone || zone
     );
     fetchPendingRequest();
-  }, [selectedMonth, selectedRole, group]);
+  }, [selectedMonth, selectedRole, group, zone]);
 
   const fetchPendingRequest = async () => {
     try {
@@ -160,7 +164,10 @@ const AdminDashboard = () => {
     setSelectedRole(event.target.value);
   };
 
-  // Function to export the report to Excel
+  const handleZoneChange = (event) => {
+    setZone(event.target.value);
+  };
+
   const exportToExcel = () => {
     const worksheetData = reports.map((report) => ({
       Name: report.username,
@@ -192,17 +199,12 @@ const AdminDashboard = () => {
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Monthly Report");
-
-    // Generate Excel file and trigger download
     XLSX.writeFile(workbook, `Monthly_Report_${selectedMonth}.xlsx`);
   };
 
   return (
     <div className="flex">
-      {/* Side Drawer */}
-      <Sidebar/>
-
-      {/* Main Content */}
+      <Sidebar />
       <div className="flex-1 min-h-screen p-4 md:p-6 bg-gray-100">
         <button
           onClick={() => setIsDrawerOpen(!isDrawerOpen)}
@@ -213,7 +215,6 @@ const AdminDashboard = () => {
 
         <h1 className="text-xl font-bold mb-4">Monthly Attendance Report</h1>
 
-        {/* Export Button */}
         <button
           onClick={exportToExcel}
           className="mb-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
@@ -231,46 +232,22 @@ const AdminDashboard = () => {
               className="border rounded px-2 py-1"
             />
           </div>
-          {/* {storedUser?.role === "admin" && (
+          {storedUser?.role === "super admin" && (
             <div>
-              <label className="mr-2 font-semibold">Filter by Group:</label>
+              <label className="mr-2 font-semibold">Filter by Department:</label>
               <select
-                value={group}
-                onChange={(e) => setGroup(e.target.value)}
+                value={zone}
+                onChange={handleZoneChange}
                 className="border rounded px-2 py-1"
               >
-                <option value="RL">RL</option>
+                {zones.map((zoneOption) => (
+                  <option key={zoneOption} value={zoneOption}>
+                    {zoneOption}
+                  </option>
+                ))}
               </select>
             </div>
-          )} */}
-
-          {/* <div>
-            <label className="mr-2 font-semibold">Filter by User Role:</label>
-            <select
-              value={selectedRole}
-              onChange={handleRoleChange}
-              className="border rounded px-2 py-1"
-            >
-              {storedUser?.role === "admin" && (
-                <option value="office">Office</option>
-              )}
-              {storedUser?.role === "admin" && (
-                <option value="admin">admin</option>
-              )}
-              {(storedUser?.role === "admin" ||
-                storedUser?.role === "RSM") && <option value="RSM">RSM</option>}
-
-              {(storedUser?.role === "admin" ||
-                storedUser?.role === "RSM" ||
-                storedUser?.role === "TSO") && <option value="TSO">TSO</option>}
-
-              {(storedUser?.role === "admin" ||
-                storedUser?.role === "RSM" ||
-                storedUser?.role === "ASM") && <option value="ASM">ASM</option>}
-
-              <option value="SO">SO</option>
-            </select>
-          </div> */}
+          )}
         </div>
 
         {loading ? (
@@ -340,7 +317,7 @@ const AdminDashboard = () => {
                     <td className="border border-gray-300 px-4 py-2">
                       {report.approvedLeaves}
                     </td>
-                    <td className="border border-gray-300  bg-red-300 px-4 py-2">
+                    <td className="border border-gray-300 bg-red-300 px-4 py-2">
                       {totalWorkingDays -
                         report.totalCheckIns -
                         report.approvedLeaves >
@@ -361,7 +338,7 @@ const AdminDashboard = () => {
                     <td className="border border-gray-300 bg-red-300 px-4 py-2">
                       {report.lateCheckIns}
                     </td>
-                    <td className="border border-gray-300 bg-[#9BB97F]  px-4 py-2">
+                    <td className="border border-gray-300 bg-[#9BB97F] px-4 py-2">
                       {report.lateCheckOuts}
                     </td>
                     <td className="border border-gray-300 px-4 py-2">

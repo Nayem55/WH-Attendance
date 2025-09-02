@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import * as XLSX from "xlsx"; // Import the xlsx library
+import * as XLSX from "xlsx";
 import Sidebar from "../../Component/Sidebar";
 
 const TodaysReport = () => {
@@ -13,14 +13,14 @@ const TodaysReport = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [updatedStatuses, setUpdatedStatuses] = useState({});
-  const [zone, setZone] = useState("");
+  const [zone, setZone] = useState(""); // Initialize as empty for "All Zones"
   const [group, setGroup] = useState("WH");
-  const [selectedDate, setSelectedDate] = useState(
-    dayjs().format("YYYY-MM-DD")
-  );
-  const [selectedRole, setSelectedRole] = useState("WH");
+  const [selectedDate, setSelectedDate] = useState(dayjs().format("YYYY-MM-DD"));
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem("user"));
+
+  // Available zones for the dropdown
+  const zones = ["All Zones", "RL", "Damage", "GVI", "Delivery Department", "AMD"];
 
   useEffect(() => {
     if (!storedUser) {
@@ -31,20 +31,19 @@ const TodaysReport = () => {
   useEffect(() => {
     fetchReports(
       selectedDate,
-      selectedRole,
-      storedUser.group || (selectedRole === "super admin" ? "" : group),
-      storedUser.zone || (selectedRole === "super admin" ? "" : zone)
+      storedUser.group || (storedUser.role === "super admin" ? "WH" : group),
+      storedUser.zone || (storedUser.role === "super admin" ? (zone === "All Zones" ? "" : zone) : zone)
     );
-  }, [selectedDate, selectedRole, group, zone]);
+  }, [selectedDate, group, zone]);
 
-  const fetchReports = async (date, role, group, zone) => {
+  const fetchReports = async (date, group, zone) => {
     setLoading(true);
     setError(null);
     try {
       const usersResponse = await axios.get(
         `https://attendance-app-server-blue.vercel.app/getAllUser`,
         {
-          params: { role, group, zone }, // Include group and zone as query parameters
+          params: { group, zone }, // Include group and zone as query parameters
         }
       );
       const users = usersResponse.data;
@@ -144,7 +143,7 @@ const TodaysReport = () => {
       toast.success("Status updated successfully");
     } catch (error) {
       console.error("Error updating status:", error);
-      alert("Failed to update status. Please try again.");
+      toast.error("Failed to update status. Please try again.");
     }
   };
 
@@ -160,7 +159,6 @@ const TodaysReport = () => {
     const worksheetData = todaysReports.map((report) => ({
       Name: report.username,
       Number: report.number,
-      Role: selectedRole,
       Zone: report.zone,
       "Check-in Time": report.checkInTime,
       "Check-out Time": report.checkOutTime,
@@ -175,31 +173,37 @@ const TodaysReport = () => {
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Daily Report");
-
-    // Generate Excel file and trigger download
-    XLSX.writeFile(workbook, `Daily_Report.xlsx`);
+    XLSX.writeFile(workbook, `Daily_Report_${selectedDate}.xlsx`);
   };
 
   return (
     <div className="flex">
-      <Sidebar/>
+      <Sidebar />
       {/* Main Content */}
       <div className="flex-1 min-h-screen p-4 md:p-6 bg-gray-100">
         <button
           onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-          className="md:hidden mb-4 px-4 py-2 bg-gray-800 text-white rounded"
+          className="md:hidden mb-4 px-4 py-2 bg-gray-800 text-white rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
         >
-          {isDrawerOpen ? "Close Menu" : "Open Menu"}
+          {isDrawerOpen ? (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
         </button>
 
         <h1 className="text-xl font-bold mb-4">Today's Report</h1>
         <p className="mb-6 font-bold text-[#0DC180]">
-          Total Check In : {todaysReports?.length}
+          Total Check In: {todaysReports?.length}
         </p>
         {/* Export Button */}
         <button
           onClick={exportToExcel}
-          className="mb-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          className="mb-4 px-4 py-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
         >
           Export Report
         </button>
@@ -216,78 +220,24 @@ const TodaysReport = () => {
               className="border border-gray-300 rounded px-3 py-2 w-full"
             />
           </div>
-{/* 
           {storedUser?.role === "super admin" && (
-            <div className="mb-4 w-[100%]">
-              <label className="block text-gray-700 font-bold mb-2">
-                Filter by Group:
-              </label>
-              <select
-                value={group}
-                onChange={(e) => setGroup(e.target.value)}
-                className="border rounded px-2 py-1"
-              >
-                <option value="RL">RL</option>
-              </select>
-            </div>
-          )} */}
-
-          {/* {(storedUser?.role === "super admin" ||
-            storedUser?.role === "RSM") && (
-            <div className="mb-4 w-[100%]">
+            <div className="mb-4 w-[200px]">
               <label className="block text-gray-700 font-bold mb-2">
                 Filter by Zone:
               </label>
               <select
                 value={zone}
                 onChange={(e) => setZone(e.target.value)}
-                className="border rounded px-2 py-1"
+                className="border border-gray-300 rounded px-3 py-2 w-full"
               >
-                <option value="">Select Zone</option>
-                <option value="DHAKA-01-ZONE-01">DHAKA-01-ZONE-01</option>
-                <option value="DHAKA-02-ZONE-03">DHAKA-02-ZONE-03</option>
-                <option value="DHAKA-03-ZONE-03">DHAKA-03-ZONE-03</option>
-                <option value="KHULNA-ZONE-01">KHULNA-ZONE-01</option>
-                <option value="COMILLA-ZONE-03">COMILLA-ZONE-03</option>
-                <option value="CHITTAGONG-ZONE-03">CHITTAGONG-ZONE-03</option>
-                <option value="RANGPUR-ZONE-01">RANGPUR-ZONE-01</option>
-                <option value="BARISAL-ZONE-03">BARISAL-ZONE-03</option>
-                <option value="BOGURA-ZONE-01">BOGURA-ZONE-01</option>
-                <option value="MYMENSINGH-ZONE-01">MYMENSINGH-ZONE-01</option>
+                {zones.map((zoneOption) => (
+                  <option key={zoneOption} value={zoneOption}>
+                    {zoneOption}
+                  </option>
+                ))}
               </select>
             </div>
           )}
-          <div className="mb-4 w-[100%]">
-            <label className="block text-gray-700 font-bold mb-2">
-              Select Role:
-            </label>
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-2 w-full"
-            >
-              {storedUser?.role === "super admin" && (
-                <option value="office">Office</option>
-              )}
-              {storedUser?.role === "super admin" && (
-                <option value="super admin">Super Admin</option>
-              )}
-              {(storedUser?.role === "super admin" ||
-                storedUser?.role === "SOM" ||
-                storedUser?.role === "RSM") && <option value="RSM">RSM</option>}
-
-              {(storedUser?.role === "super admin" ||
-                storedUser?.role === "RSM" ||
-                storedUser?.role === "TSO") && <option value="TSO">TSO</option>}
-
-              {(storedUser?.role === "super admin" ||
-                storedUser?.role === "SOM" ||
-                storedUser?.role === "RSM" ||
-                storedUser?.role === "ASM") && <option value="ASM">ASM</option>}
-
-              <option value="SO">SO</option>
-            </select>
-          </div> */}
         </div>
 
         {loading ? (
@@ -295,7 +245,7 @@ const TodaysReport = () => {
         ) : error ? (
           <p className="text-red-500">{error}</p>
         ) : todaysReports.length > 0 ? (
-          <div className="overflow-x-scroll w-[90vw] sm:w-[80vw]">
+          <div className="overflow-x-auto w-[95vw] sm:w-[auto]">
             <table className="w-full border-collapse border border-gray-300">
               <thead>
                 <tr className="bg-gray-200">
@@ -403,7 +353,7 @@ const TodaysReport = () => {
                     </td>
                     <td className="border border-gray-300 px-4 py-2 flex gap-4 items-center">
                       <select
-                        className="px-2 py-1"
+                        className="border border-gray-300 rounded px-2 py-1"
                         value={updatedStatuses[report.checkInId] || ""}
                         onChange={(e) =>
                           handleStatusChange(report.checkInId, e.target.value)
@@ -419,7 +369,7 @@ const TodaysReport = () => {
                       </select>
                       <button
                         onClick={() => saveStatus(report.checkInId)}
-                        className="bg-[#1F2937] hover:bg-[#002B54] ease-in-out duration-200 text-white px-2 py-1 rounded"
+                        className="bg-gray-800 hover:bg-gray-900 text-white px-2 py-1 rounded transition-colors"
                       >
                         Save
                       </button>
@@ -430,7 +380,7 @@ const TodaysReport = () => {
             </table>
           </div>
         ) : (
-          <p>No reports available for the selected date and role.</p>
+          <p>No reports available for the selected date and zone.</p>
         )}
 
         {/* Modal */}
@@ -438,7 +388,7 @@ const TodaysReport = () => {
           <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
             <div className="relative rounded shadow-md">
               <button
-                className="absolute top-4 right-4 text-4xl text-black hover:text-gray-800"
+                className="absolute top-4 right-4 text-4xl text-white hover:text-gray-300"
                 onClick={closeImageModal}
               >
                 ✕
@@ -446,7 +396,7 @@ const TodaysReport = () => {
               <img
                 src={selectedImage}
                 alt="Enlarged"
-                className="max-w-[90vw] max-h-[90vh] object-cover"
+                className="max-w-[90vw] max-h-[90vh] object-cover rounded"
               />
             </div>
           </div>

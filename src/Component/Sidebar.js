@@ -5,9 +5,8 @@ const Sidebar = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const location = useLocation();
 
-  // Define all navigation items
+  // Define navigation items
   const navItems = [
-    // { path: "/admin", label: "Attendance Report" },
     { path: "/admin/today-report", label: "Today's Report" },
     { path: "/admin/monthly-summary", label: "Monthly Summary" },
     { path: "/admin/monthly-details", label: "Monthly Details" },
@@ -21,41 +20,62 @@ const Sidebar = () => {
       {/* Mobile menu button (only visible on small screens) */}
       <button
         onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-        className="md:hidden fixed z-10 top-4 left-4 p-2 bg-gray-800 text-white rounded"
+        className="md:hidden fixed z-30 top-4 left-4 p-3 bg-gray-600 text-white rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
       >
-        {isDrawerOpen ? "✕" : "☰"}
+        {isDrawerOpen ? (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ) : (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        )}
       </button>
 
       {/* Sidebar */}
       <div
-        className={`fixed md:relative z-20 bg-gray-800 text-white w-64 h-screen transform ${
+        className={`fixed md:sticky md:top-0 z-20 bg-gray-900 text-white w-64 h-screen flex flex-col shadow-lg border-r border-gray-700 transform ${
           isDrawerOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 transition-transform duration-300`}
+        } md:translate-x-0 transition-transform duration-300 ease-in-out`}
       >
-        <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-          <h2 className="text-lg font-bold">Admin Panel</h2>
-          <button
-            onClick={() => setIsDrawerOpen(false)}
-            className="text-white md:hidden focus:outline-none"
-          >
-            ✕
-          </button>
+        {/* Branding Section */}
+        <div className="p-6 border-b border-gray-700">
+          <h2 className="text-2xl font-semibold tracking-tight">Admin Panel</h2>
+          <p className="text-sm text-gray-400 mt-1">Attendance Management</p>
         </div>
-        <nav className="flex flex-col p-4 space-y-1">
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {navItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}
-              className={`px-4 py-3 rounded hover:bg-gray-700 focus:bg-gray-700 transition-colors ${
-                location.pathname === item.path ? "bg-gray-700" : ""
+              className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                location.pathname === item.path
+                  ? "bg-gray-600 text-white shadow-sm"
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}
               onClick={() => setIsDrawerOpen(false)}
             >
-              {item.label}
+              <span>{item.label}</span>
             </Link>
           ))}
         </nav>
+
+        {/* Footer Section (Optional) */}
+        <div className="p-4 border-t border-gray-700">
+          <p className="text-xs text-gray-400">© 2025 Attendance App</p>
+        </div>
       </div>
+
+      {/* Overlay for mobile when sidebar is open */}
+      {isDrawerOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden"
+          onClick={() => setIsDrawerOpen(false)}
+        ></div>
+      )}
     </>
   );
 };

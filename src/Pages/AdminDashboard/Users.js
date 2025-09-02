@@ -207,7 +207,7 @@ const UserManagementPage = () => {
 
   return (
     <div className="flex w-[95vw] sm:w-[100vw] overflow-x-scroll">
-      <Sidebar/>
+      <Sidebar />
 
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 bg-gray-100 py-10">
@@ -320,7 +320,7 @@ const UserManagementPage = () => {
                     className="w-full p-2 border border-gray-300 rounded"
                   >
                     <option value="WH">WH</option>
-                    <option value="Admin">Admin</option>
+                    <option value="super admin">Super Admin</option>
                     <option value="Manager">Manager</option>
                   </select>
                 </div>
@@ -575,7 +575,7 @@ const UserManagementPage = () => {
                       className="w-full p-2 border border-gray-300 rounded"
                     >
                       <option value="WH">WH</option>
-                      <option value="Admin">Admin</option>
+                      <option value="super admin">Super Admin</option>
                       <option value="Manager">Manager</option>
                     </select>
                   </div>
