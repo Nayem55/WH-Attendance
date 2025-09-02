@@ -2,15 +2,14 @@ import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
-import * as XLSX from "xlsx"; // Import the xlsx library
+import * as XLSX from "xlsx";
 import Sidebar from "../../Component/Sidebar";
 
 const DetailedSummary = () => {
   const [reports, setReports] = useState([]);
-  const [group, setGroup] = useState("WH");
+  const [zone, setZone] = useState("RL"); // Default to RL
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(dayjs().format("YYYY-MM"));
-  const [selectedRole, setSelectedRole] = useState("WH");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [error, setError] = useState(null);
   const [totalWorkingDays, setTotalWorkingDays] = useState(null);
@@ -18,6 +17,9 @@ const DetailedSummary = () => {
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem("user"));
   const dayCount = dayjs(selectedMonth).daysInMonth();
+
+  // Available zones for the dropdown
+  const zones = ["RL", "Damage", "GVI", "Delivery Department", "AMD"];
 
   useEffect(() => {
     if (!storedUser) {
@@ -29,12 +31,11 @@ const DetailedSummary = () => {
     fetchWorkingDays(selectedMonth);
     fetchUserReports(
       selectedMonth,
-      selectedRole,
-      storedUser.group,
-      storedUser.zone
+      "WH", // Hardcoded group to WH
+      storedUser.role === "super admin" ? zone : storedUser.zone
     );
     fetchPendingRequest();
-  }, [selectedMonth, selectedRole, group]);
+  }, [selectedMonth, zone]);
 
   const fetchPendingRequest = async () => {
     try {
@@ -83,7 +84,7 @@ const DetailedSummary = () => {
     }
   };
 
-  const fetchUserReports = async (month, role, group, zone) => {
+  const fetchUserReports = async (month, group, zone) => {
     setLoading(true);
     setError(null);
     try {
@@ -91,7 +92,7 @@ const DetailedSummary = () => {
       const usersResponse = await axios.get(
         `https://attendance-app-server-blue.vercel.app/getAllUser`,
         {
-          params: { role, group, zone },
+          params: { group, zone },
         }
       );
       const users = usersResponse.data;
@@ -137,7 +138,7 @@ const DetailedSummary = () => {
           return {
             username: user.name,
             number: user.number,
-            outlet: user.outlet || "N/A", // Assuming outlet is part of user data
+            outlet: user.outlet || "N/A",
             zone: user.zone,
             dailyTimes,
           };
@@ -156,11 +157,6 @@ const DetailedSummary = () => {
     setSelectedMonth(event.target.value);
   };
 
-  const handleRoleChange = (event) => {
-    setSelectedRole(event.target.value);
-  };
-
-  // Function to export the report to Excel in the desired format
   const exportToExcel = () => {
     const worksheetData = [];
 
@@ -210,78 +206,58 @@ const DetailedSummary = () => {
 
   return (
     <div className="flex">
-      {/* Side Drawer */}
-      <Sidebar/>
-
-      {/* Main Content */}
+      <Sidebar />
       <div className="flex-1 min-h-screen p-4 md:p-6 bg-gray-100">
         <button
           onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-          className="md:hidden mb-4 px-4 py-2 bg-gray-800 text-white rounded"
+          className="md:hidden mb-4 px-4 py-2 bg-gray-800 text-white rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
         >
-          {isDrawerOpen ? "Close Menu" : "Open Menu"}
+          {isDrawerOpen ? (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
         </button>
 
         <h1 className="text-xl font-bold mb-4">Monthly Attendance Report</h1>
 
-        {/* Export Button */}
         <button
           onClick={exportToExcel}
-          className="mb-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          className="mb-4 px-4 py-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
         >
           Export Report
         </button>
 
         <div className="mb-4 flex items-center space-x-4">
           <div>
-            <label className="mr-2 font-semibold">Select Month:</label>
+            <label className="block text-gray-700 font-bold mb-2">Select Month:</label>
             <input
               type="month"
               value={selectedMonth}
               onChange={handleMonthChange}
-              className="border rounded px-2 py-1"
+              className="border border-gray-300 rounded px-3 py-2 w-[200px]"
             />
           </div>
-          {/* {storedUser?.role === "super admin" && (
+          {storedUser?.role === "super admin" && (
             <div>
-              <label className="mr-2 font-semibold">Filter by Group:</label>
+              <label className="block text-gray-700 font-bold mb-2">Filter by Zone:</label>
               <select
-                value={group}
-                onChange={(e) => setGroup(e.target.value)}
-                className="border rounded px-2 py-1"
+                value={zone}
+                onChange={(e) => setZone(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 w-[200px]"
               >
-                <option value="RL">RL</option>
+                {zones.map((zoneOption) => (
+                  <option key={zoneOption} value={zoneOption}>
+                    {zoneOption}
+                  </option>
+                ))}
               </select>
             </div>
-          )} */}
-
-          {/* <div>
-            <label className="mr-2 font-semibold">Filter by User Role:</label>
-            <select
-              value={selectedRole}
-              onChange={handleRoleChange}
-              className="border rounded px-2 py-1"
-            >
-              {storedUser?.role === "super admin" && (
-                <option value="office">Office</option>
-              )}
-              {storedUser?.role === "super admin" && (
-                <option value="super admin">Super Admin</option>
-              )}
-              {(storedUser?.role === "super admin" ||
-                storedUser?.role === "RSM") && <option value="RSM">RSM</option>}
-
-              {(storedUser?.role === "super admin" ||
-                storedUser?.role === "RSM" ||
-                storedUser?.role === "TSO") && <option value="TSO">TSO</option>}
-
-              {(storedUser?.role === "super admin" ||
-                storedUser?.role === "RSM" ||
-                storedUser?.role === "ASM") && <option value="ASM">ASM</option>}
-
-              <option value="SO">SO</option>
-            </select>
-          </div> */}
+          )}
         </div>
 
         {loading ? (
@@ -351,7 +327,7 @@ const DetailedSummary = () => {
             </table>
           </div>
         ) : (
-          <p className="text-gray-500">No reports found for this month.</p>
+          <p className="text-gray-500">No reports found for this month and zone.</p>
         )}
       </div>
     </div>
